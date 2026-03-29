@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Al-Fatihah — Full AI Setoran</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex; justify-content: center; align-items: flex-start;
+      background: linear-gradient(135deg, #0f1b2d 0%, #1a2940 50%, #0f1b2d 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 40px 20px; color: #e0e0e0;
+    }
+
+    .quran-card {
+      background: rgba(255,255,255,0.04); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 24px;
+      max-width: 880px; width: 100%; padding: 40px 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    .surah-header { text-align: center; margin-bottom: 30px; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .surah-name-ar { font-size: 2.6rem; color: #fff; font-family: 'Traditional Arabic','Amiri',serif; }
+    .surah-header h1 { font-size: 2rem; color: #c9a84c; font-weight: 700; }
+    .surah-sub { color: #8899aa; font-size: 0.8rem; margin-top: 10px; }
+
+    .mode-bar { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; }
+    .btn-mode { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 28px; border: 2px solid rgba(201,168,76,0.3); background: transparent; color: #c9a84c; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    .btn-mode:hover { background: rgba(201,168,76,0.08); }
+    .btn-mode.active-listen { background: rgba(201,168,76,0.15); border-color: #c9a84c; }
+    .btn-mode.active-train { background: rgba(229,115,115,0.12); border-color: #e57373; color: #e57373; }
+    .btn-mode.active-setoran { background: rgba(100,181,246,0.15); border-color: #64b5f6; color: #64b5f6; }
+
+    .banner { display: none; text-align: center; padding: 16px 20px; margin-bottom: 24px; border-radius: 14px; animation: fadeIn 0.3s; }
+    .banner.show { display: block; }
+    .listen-banner { background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2); }
+    .listen-banner p { color: #c9a84c; font-size: 0.85rem; }
+    .training-banner { background: rgba(229,115,115,0.08); border: 1px solid rgba(229,115,115,0.2); }
+    .training-banner p { color: #ef9a9a; font-size: 0.85rem; }
+    .setoran-banner { background: rgba(100,181,246,0.08); border: 1px solid rgba(100,181,246,0.2); }
+    .setoran-banner p { color: #90caf9; font-size: 0.85rem; margin-bottom: 12px; }
+
+    .btn-main-action { padding: 10px 28px; border-radius: 30px; border: none; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .btn-start-setoran { background: linear-gradient(135deg, #64b5f6, #1e88e5); color: #fff; }
+    .btn-stop-setoran { background: linear-gradient(135deg, #ef5350, #c62828); color: #fff; display: none; }
+    .btn-stop-setoran.active { display: inline-block; animation: pulse 1s infinite; }
+    .btn-start-setoran.hidden { display: none; }
+
+    .live-transcript { display: none; margin-top: 14px; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(100,181,246,0.15); direction: rtl; text-align: right; font-family: 'Traditional Arabic','Amiri',serif; font-size: 1.3rem; color: #90caf9; min-height: 50px; line-height: 1.8; }
+    .live-transcript.show { display: block; }
+    .live-transcript-label { display: none; font-size: 0.72rem; color: #546e7a; margin-top: 6px; direction: ltr; text-align: center; }
+    .live-transcript-label.show { display: block; }
+
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .verse { margin-bottom: 28px; padding: 20px; background: rgba(255,255,255,0.025); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; }
+    .verse:hover { background: rgba(255,255,255,0.04); }
+    .verse-number-badge { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: linear-gradient(135deg, #c9a84c, #a8852a); color: #0f1b2d; border-radius: 50%; font-size: 0.85rem; font-weight: 700; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
+    .words-container { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; direction: rtl; margin-bottom: 12px; }
+
+    .word-bubble { display: flex; flex-direction: column; align-items: center; background: linear-gradient(145deg, rgba(201,168,76,0.1), rgba(201,168,76,0.03)); border: 1px solid rgba(201,168,76,0.2); border-radius: 16px; padding: 14px 18px 10px; min-width: 80px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: visible; }
+    .word-bubble:hover { transform: translateY(-4px) scale(1.04); box-shadow: 0 8px 25px rgba(201,168,76,0.2); border-color: rgba(201,168,76,0.5); }
+    .word-arabic { font-family: 'Traditional Arabic','Amiri',serif; font-size: 1.7rem; color: #fff; margin-bottom: 6px; }
+    .word-transliteration { font-size: 0.7rem; color: #c9a84c; margin-bottom: 3px; font-style: italic; }
+    .word-translation { font-size: 0.68rem; color: #8899aa; text-align: center; direction: ltr; max-width: 100px; }
+
+    .word-bubble.end-marker { background: transparent; border: none; min-width: auto; padding: 10px 6px; cursor: default; }
+    .word-bubble.end-marker:hover { transform: none; box-shadow: none; border: none; }
+    .word-bubble.end-marker .word-arabic { color: #c9a84c; font-size: 1.4rem; }
+
+    .word-bubble.playing-audio { border-color: #4caf50 !important; box-shadow: 0 0 20px rgba(76,175,80,0.4) !important; }
+    .word-bubble.recording { border-color: #e57373 !important; box-shadow: 0 0 0 4px rgba(229,115,115,0.15), 0 0 30px rgba(229,115,115,0.2) !important; animation: pulse-rec 1s infinite; }
+    @keyframes pulse-rec { 0%,100% { box-shadow: 0 0 0 4px rgba(229,115,115,0.15), 0 0 30px rgba(229,115,115,0.2); } 50% { box-shadow: 0 0 0 8px rgba(229,115,115,0.08), 0 0 40px rgba(229,115,115,0.3); } }
+
+    .rec-indicator { display: none; position: absolute; top: 6px; left: 6px; width: 10px; height: 10px; border-radius: 50%; }
+    .word-bubble.has-recording .rec-indicator { display: block; background: #66bb6a; }
+    .rec-count-badge { display: none; position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%; background: #64b5f6; color: #fff; font-size: 0.55rem; font-weight: bold; line-height: 18px; text-align: center; }
+    .word-bubble.has-recording .rec-count-badge { display: block; }
+
+    .rec-actions { display: none; flex-direction: column; gap: 4px; margin-top: 8px; width: 100%; }
+    .word-bubble.has-recording .rec-actions { display: flex; }
+    .rec-list { display: flex; flex-direction: column; gap: 3px; max-height: 100px; overflow-y: auto; }
+    .rec-list-item { display: flex; align-items: center; gap: 4px; justify-content: center; }
+    .rec-action-btn { padding: 3px 8px; border-radius: 8px; border: none; font-size: 0.58rem; cursor: pointer; transition: all 0.2s; font-weight: 600; }
+    .btn-play-rec { background: rgba(76,175,80,0.15); color: #66bb6a; border: 1px solid rgba(76,175,80,0.3); }
+    .btn-play-rec:hover { background: rgba(76,175,80,0.25); }
+    .btn-play-rec.playing-rec { background: rgba(76,175,80,0.35); }
+    .btn-del-rec { background: rgba(229,115,115,0.12); color: #e57373; border: 1px solid rgba(229,115,115,0.25); }
+    .btn-del-rec:hover { background: rgba(229,115,115,0.2); }
+    .btn-add-rec { background: rgba(100,181,246,0.12); color: #64b5f6; border: 1px solid rgba(100,181,246,0.25); width: 100%; margin-top: 4px; padding: 4px; }
+    .btn-add-rec:hover { background: rgba(100,181,246,0.2); }
+    .rec-dur { font-size: 0.5rem; color: #8899aa; }
+
+    .word-bubble.score-red { background: linear-gradient(145deg, rgba(239,83,80,0.15), rgba(239,83,80,0.05)) !important; border-color: #ef5350 !important; box-shadow: 0 4px 15px rgba(239,83,80,0.2); }
+    .word-bubble.score-yellow { background: linear-gradient(145deg, rgba(255,202,40,0.15), rgba(255,202,40,0.05)) !important; border-color: #ffca28 !important; box-shadow: 0 4px 15px rgba(255,202,40,0.2); }
+    .word-bubble.score-green { background: linear-gradient(145deg, rgba(102,187,106,0.15), rgba(102,187,106,0.05)) !important; border-color: #66bb6a !important; box-shadow: 0 4px 15px rgba(102,187,106,0.2); }
+
+    .score-badge { display: none; font-size: 0.65rem; font-weight: bold; padding: 3px 8px; border-radius: 12px; margin-top: 6px; direction: ltr; cursor: pointer; }
+    .word-bubble.score-red .score-badge { display: block; background: rgba(239,83,80,0.2); color: #ef5350; }
+    .word-bubble.score-yellow .score-badge { display: block; background: rgba(255,202,40,0.2); color: #ffca28; }
+    .word-bubble.score-green .score-badge { display: block; background: rgba(102,187,106,0.2); color: #66bb6a; }
+
+    .detected-text { display: none; font-size: 0.75rem; font-family: 'Traditional Arabic','Amiri',serif; color: #90caf9; margin-top: 4px; padding: 2px 8px; background: rgba(100,181,246,0.08); border-radius: 8px; direction: rtl; max-width: 120px; text-align: center; word-break: break-word; }
+    .detected-text.show { display: block; }
+    .detected-text.match { color: #66bb6a; background: rgba(102,187,106,0.1); }
+    .detected-text.partial { color: #ffca28; background: rgba(255,202,40,0.1); }
+    .detected-text.mismatch { color: #ef5350; background: rgba(239,83,80,0.1); }
+
+    .verse-translation { direction: ltr; text-align: center; font-size: 0.88rem; color: #7a8fa3; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); line-height: 1.6; font-style: italic; }
+
+    .analyzer-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,27,45,0.92); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
+    .analyzer-overlay.show { display: flex; }
+    .spinner-large { width: 60px; height: 60px; border: 4px solid rgba(100,181,246,0.2); border-top-color: #64b5f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    .analyzer-text { color: #90caf9; font-size: 1.1rem; font-weight: 600; text-align: center; padding: 0 20px; }
+    .analyzer-progress { width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 16px; overflow: hidden; }
+    .analyzer-progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #64b5f6, #66bb6a); border-radius: 4px; transition: width 0.3s; }
+
+    /* ─── Detail Modal ─── */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,27,45,0.92); backdrop-filter: blur(5px); z-index: 1001; justify-content: center; align-items: center; }
+    .modal-overlay.show { display: flex; }
+    .modal-card { background: #1a2940; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; padding: 28px 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; direction: ltr; }
+    .modal-header h2 { font-size: 1.1rem; color: #c9a84c; }
+    .modal-close { background: none; border: none; color: #8899aa; font-size: 1.5rem; cursor: pointer; padding: 4px 10px; border-radius: 8px; }
+    .modal-close:hover { background: rgba(255,255,255,0.05); }
+    .modal-word-ar { text-align: center; font-family: 'Traditional Arabic','Amiri',serif; font-size: 2.2rem; color: #fff; margin-bottom: 6px; }
+    .modal-word-tl { text-align: center; font-size: 0.85rem; color: #c9a84c; font-style: italic; margin-bottom: 20px; }
+    .modal-detected { text-align: center; font-family: 'Traditional Arabic','Amiri',serif; font-size: 1.4rem; margin-bottom: 16px; padding: 8px; border-radius: 10px; }
+    .modal-detected.match { color: #66bb6a; background: rgba(102,187,106,0.08); }
+    .modal-detected.partial { color: #ffca28; background: rgba(255,202,40,0.08); }
+    .modal-detected.mismatch { color: #ef5350; background: rgba(239,83,80,0.08); }
+
+    .score-section { margin-bottom: 16px; }
+    .score-section-title { font-size: 0.78rem; color: #8899aa; margin-bottom: 8px; direction: ltr; }
+    .score-bar-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; direction: ltr; }
+    .score-bar-label { font-size: 0.72rem; color: #8899aa; min-width: 100px; text-align: right; }
+    .score-bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .score-bar-fill.red { background: linear-gradient(90deg, #ef5350, #e57373); }
+    .score-bar-fill.yellow { background: linear-gradient(90deg, #ffca28, #ffd54f); }
+    .score-bar-fill.green { background: linear-gradient(90deg, #66bb6a, #81c784); }
+    .score-bar-value { font-size: 0.72rem; font-weight: bold; min-width: 38px; }
+
+    .total-score-box { text-align: center; padding: 16px; margin-top: 10px; border-radius: 14px; }
+    .total-score-box.red { background: rgba(239,83,80,0.1); border: 1px solid rgba(239,83,80,0.2); }
+    .total-score-box.yellow { background: rgba(255,202,40,0.1); border: 1px solid rgba(255,202,40,0.2); }
+    .total-score-box.green { background: rgba(102,187,106,0.1); border: 1px solid rgba(102,187,106,0.2); }
+    .total-score-num { font-size: 2.5rem; font-weight: bold; }
+    .total-score-box.red .total-score-num { color: #ef5350; }
+    .total-score-box.yellow .total-score-num { color: #ffca28; }
+    .total-score-box.green .total-score-num { color: #66bb6a; }
+    .total-score-label { font-size: 0.75rem; color: #8899aa; margin-top: 4px; }
+
+    .duration-compare { display: flex; justify-content: center; gap: 20px; margin: 12px 0; direction: ltr; }
+    .dur-item { text-align: center; }
+    .dur-item .dur-val { font-size: 1.2rem; font-weight: bold; }
+    .dur-item .dur-lbl { font-size: 0.65rem; color: #8899aa; }
+
+    .loading { text-align: center; padding: 60px 20px; }
+    .loading .spinner { width: 48px; height: 48px; border: 3px solid rgba(201,168,76,0.15); border-top-color: #c9a84c; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    .loading p { color: #8899aa; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a2940; border: 1px solid rgba(201,168,76,0.3); border-radius: 14px; padding: 12px 24px; font-size: 0.85rem; color: #c9a84c; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 999; opacity: 0; transition: all 0.4s ease; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .footer { text-align: center; margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.75rem; color: #556677; }
+    .footer a { color: #c9a84c; text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .quran-card { padding: 24px 14px; }
+      .word-bubble { padding: 10px 12px 8px; min-width: 65px; }
+      .word-arabic { font-size: 1.4rem; }
+      .surah-header h1 { font-size: 1.5rem; }
+      .surah-name-ar { font-size: 2rem; }
+      .btn-mode { padding: 8px 14px; font-size: 0.78rem; }
+      .modal-card { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="analyzer-overlay" id="analyzerOverlay">
+    <div class="spinner-large"></div>
+    <div class="analyzer-text" id="analyzerText">Menganalisis...</div>
+    <div class="analyzer-progress"><div class="analyzer-progress-bar" id="analyzerBar"></div></div>
+  </div>
+
+  <!-- Detail Score Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card" id="modalCard"></div>
+  </div>
+
+  <div class="quran-card">
+    <div class="surah-header">
+      <div class="surah-name-ar">الفاتحة</div>
+      <h1>Al-Fatihah</h1>
+      <p class="surah-sub">Listen + Multi-Training + AI Setoran</p>
+    </div>
+
+    <div class="mode-bar">
+      <button class="btn-mode active-listen" id="btnListen" onclick="setMode('listen')">🔊 Dengarkan</button>
+      <button class="btn-mode" id="btnTrain" onclick="setMode('train')">🎙️ Training</button>
+      <button class="btn-mode" id="btnSetoran" onclick="setMode('setoran')">📝 Setoran</button>
+    </div>
+
+    <div class="banner listen-banner show" id="listenBanner">
+      <p>🔊 <strong>Mode Dengarkan</strong> — Klik gelembung untuk mendengar audio asli per kata.</p>
+    </div>
+    <div class="banner training-banner" id="trainingBanner">
+      <p>🎙️ <strong>Mode Training</strong> — Klik gelembung untuk merekam. Bisa rekam berkali-kali per kata! Tekan ➕ untuk tambah rekaman.</p>
+    </div>
+    <div class="banner setoran-banner" id="setoranBanner">
+      <p>📝 <strong>Mode Setoran</strong> — Bacalah Al-Fatihah langsung. Skor dihitung dari kemiripan teks (Levenshtein) + durasi + frekuensi suara dibandingkan data Training-mu. Klik badge skor untuk lihat detail.</p>
+      <button class="btn-main-action btn-start-setoran" id="btnStartSetoran" onclick="startSetoran()">▶ Mulai Rekam Setoran</button>
+      <button class="btn-main-action btn-stop-setoran" id="btnStopSetoran" onclick="stopSetoran()">⏹ Selesai dan Analisis</button>
+      <div class="live-transcript" id="liveTranscript"></div>
+      <div class="live-transcript-label" id="liveTranscriptLabel">⬆ Teks real-time dari suaramu (Web Speech API)</div>
+    </div>
+
+    <div id="versesContainer">
+      <div class="loading"><div class="spinner"></div><p>Memuat Data...</p></div>
+    </div>
+    <div class="footer">Data dari <a href="https://quran.com" target="_blank">Quran.com API</a> &bull; Audio Analysis via Web Audio API</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ═══════════════════════════════════════
+       BAGIAN 1: Core + Listen + Training
+    ═══════════════════════════════════════ */
+    var API_BASE = 'https://api.quran.com/api/v4';
+    var AUDIO_BASE = 'https://audio.qurancdn.com/';
+    var DB_NAME = 'QuranTrainV2';
+    var DB_STORE = 'recordings';
+    var db = null;
+
+    var currentMode = 'listen';
+    var currentAudio = null;
+    var currentTrainRecord = null;
+    var trainMediaRecorder = null;
+    var trainStream = null;
+
+    // Maps for setoran analysis
+    var bubbleArabicMap = {};   // bubbleId → stripped arabic
+    var bubbleTranslitMap = {}; // bubbleId → transliteration
+    var setoranScoreData = {};  // bubbleId → { text, duration, freq, audio, total }
+
+    /* ─── IndexedDB (Supports Multiple Recordings) ─── */
+    function openDB() {
+      return new Promise(function(resolve, reject) {
+        var req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = function(e) {
+          var d = e.target.result;
+          if (!d.objectStoreNames.contains(DB_STORE)) {
+            d.createObjectStore(DB_STORE, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = function(e) { db = e.target.result; resolve(); };
+        req.onerror = function() { reject(); };
+      });
+    }
+
+    // Each record: { id: bubbleId, recordings: [ { blob, duration, timestamp, features }, ... ] }
+    function getWordData(bubbleId) {
+      return new Promise(function(resolve) {
+        var tx = db.transaction(DB_STORE, 'readonly');
+        var req = tx.objectStore(DB_STORE).get(bubbleId);
+        req.onsuccess = function() { resolve(req.result || null); };
+        req.onerror = function() { resolve(null); };
+      });
+    }
+
+    function saveWordData(bubbleId, data) {
+      return new Promise(function(resolve) {
+        var tx = db.transaction(DB_STORE, 'readwrite');
+        tx.objectStore(DB_STORE).put(data);
+        tx.oncomplete = function() { resolve(); };
+      });
+    }
+
+    function addRecordingToWord(bubbleId, blob, duration, features) {
+      return getWordData(bubbleId).then(function(existing) {
+        var data = existing || { id: bubbleId, recordings: [] };
+        data.recordings.push({
+          blob: blob,
+          duration: duration,
+          features: features,
+          timestamp: Date.now()
+        });
+        return saveWordData(bubbleId, data);
+      });
+    }
+
+    function deleteRecordingFromWord(bubbleId, index) {
+      return getWordData(bubbleId).then(function(data) {
+        if (!data) return;
+        data.recordings.splice(index, 1);
+        return saveWordData(bubbleId, data);
+      });
+    }
+
+    function getRecordingKeys() {
+      return new Promise(function(resolve) {
+        var tx = db.transaction(DB_STORE, 'readonly');
+        var req = tx.objectStore(DB_STORE).getAll();
+        req.onsuccess = function() {
+          var keys = [];
+          var all = req.result || [];
+          for (var i = 0; i < all.length; i++) {
+            if (all[i].recordings && all[i].recordings.length > 0) keys.push(all[i].id);
+          }
+          resolve(keys);
+        };
+        req.onerror = function() { resolve([]); };
+      });
+    }
+
+    /* ─── Toast ─── */
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(t._t);
+      t._t = setTimeout(function() { t.classList.remove('show'); }, 2800);
+    }
+
+    /* ─── Mode Manager ─── */
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('btnListen').className = 'btn-mode' + (mode === 'listen' ? ' active-listen' : '');
+      document.getElementById('btnTrain').className = 'btn-mode' + (mode === 'train' ? ' active-train' : '');
+      document.getElementById('btnSetoran').className = 'btn-mode' + (mode === 'setoran' ? ' active-setoran' : '');
+      document.getElementById('listenBanner').className = 'banner listen-banner' + (mode === 'listen' ? ' show' : '');
+      document.getElementById('trainingBanner').className = 'banner training-banner' + (mode === 'train' ? ' show' : '');
+      document.getElementById('setoranBanner').className = 'banner setoran-banner' + (mode === 'setoran' ? ' show' : '');
+
+      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      var p = document.querySelectorAll('.playing-audio');
+      for (var i = 0; i < p.length; i++) p[i].classList.remove('playing-audio');
+      if (mode !== 'setoran') clearSetoranScores();
+      refreshAllBubbles();
+    }
+
+    function clearSetoranScores() {
+      var all = document.querySelectorAll('.word-bubble');
+      for (var i = 0; i < all.length; i++) {
+        all[i].classList.remove('score-red', 'score-yellow', 'score-green');
+        var b = all[i].querySelector('.score-badge'); if (b) b.style.display = 'none';
+        var d = all[i].querySelector('.detected-text'); if (d) { d.className = 'detected-text'; }
+      }
+      setoranScoreData = {};
+    }
+
+    /* ─── Audio Feature Extraction (Web Audio API) ─── */
+    function extractAudioFeatures(blob) {
+      return new Promise(function(resolve) {
+        var reader = new FileReader();
+        reader.onload = function() {
+          var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          audioCtx.decodeAudioData(reader.result, function(buffer) {
+            var rawData = buffer.getChannelData(0);
+            var sampleRate = buffer.sampleRate;
+            var duration = buffer.duration;
+
+            // 1. RMS Energy
+            var rmsSum = 0;
+            for (var i = 0; i < rawData.length; i++) rmsSum += rawData[i] * rawData[i];
+            var rms = Math.sqrt(rmsSum / rawData.length);
+
+            // 2. Zero Crossing Rate
+            var zcr = 0;
+            for (var i = 1; i < rawData.length; i++) {
+              if ((rawData[i] >= 0 && rawData[i-1] < 0) || (rawData[i] < 0 && rawData[i-1] >= 0)) zcr++;
+            }
+            zcr = zcr / rawData.length;
+
+            // 3. Spectral Centroid (simplified)
+            var fftSize = 2048;
+            var offlineCtx = new OfflineAudioContext(1, buffer.length, sampleRate);
+            var source = offlineCtx.createBufferSource();
+            var analyser = offlineCtx.createAnalyser();
+            analyser.fftSize = fftSize;
+            source.buffer = buffer;
+            source.connect(analyser);
+            analyser.connect(offlineCtx.destination);
+            source.start(0);
+
+            offlineCtx.startRendering().then(function() {
+              var freqData = new Float32Array(analyser.frequencyBinCount);
+              analyser.getFloatFrequencyData(freqData);
+
+              var weightedSum = 0;
+              var magSum = 0;
+              for (var k = 0; k < freqData.length; k++) {
+                var mag = Math.pow(10, freqData[k] / 20);
+                var freq = k * sampleRate / fftSize;
+                weightedSum += freq * mag;
+                magSum += mag;
+              }
+              var spectralCentroid = magSum > 0 ? weightedSum / magSum : 0;
+
+              // 4. Energy envelope (divide into 10 bins)
+              var binSize = Math.floor(rawData.length / 10);
+              var envelope = [];
+              for (var b = 0; b < 10; b++) {
+                var binRms = 0;
+                var start = b * binSize;
+                var end = Math.min(start + binSize, rawData.length);
+                for (var j = start; j < end; j++) binRms += rawData[j] * rawData[j];
+                envelope.push(Math.sqrt(binRms / (end - start)));
+              }
+
+              audioCtx.close();
+              resolve({
+                duration: duration,
+                rms: rms,
+                zcr: zcr,
+                spectralCentroid: spectralCentroid,
+                envelope: envelope
+              });
+            }).catch(function() {
+              audioCtx.close();
+              resolve({ duration: duration, rms: rms, zcr: zcr, spectralCentroid: 0, envelope: [] });
+            });
+          }, function() {
+            resolve({ duration: 0, rms: 0, zcr: 0, spectralCentroid: 0, envelope: [] });
+          });
+        };
+        reader.onerror = function() {
+          resolve({ duration: 0, rms: 0, zcr: 0, spectralCentroid: 0, envelope: [] });
+        };
+        reader.readAsArrayBuffer(blob);
+      });
+    }
+
+    /* ─── Load Surah & Build DOM ─── */
+    function loadSurah() {
+      openDB().then(function() {
+        return fetch(API_BASE + '/verses/by_chapter/1?language=id&words=true&translations=33&fields=text_uthmani&word_fields=text_uthmani&per_page=7');
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) { buildVerses(data.verses); refreshAllBubbles(); })
+      .catch(function(err) { document.getElementById('versesContainer').textContent = 'Gagal: ' + err; });
+    }
+
+    function buildVerses(verses) {
+      var container = document.getElementById('versesContainer');
+      container.textContent = '';
+
+      for (var v = 0; v < verses.length; v++) {
+        var verse = verses[v];
+        var verseEl = document.createElement('div');
+        verseEl.className = 'verse';
+
+        var badge = document.createElement('div');
+        badge.className = 'verse-number-badge';
+        badge.textContent = verse.verse_number;
+        verseEl.appendChild(badge);
+
+        var wordsWrap = document.createElement('div');
+        wordsWrap.className = 'words-container';
+
+        for (var w = 0; w < verse.words.length; w++) {
+          var word = verse.words[w];
+          var isEnd = (word.char_type_name === 'end');
+          var bubbleId = 'w-' + verse.verse_number + '-' + w;
+
+          var bubble = document.createElement('div');
+          bubble.className = isEnd ? 'word-bubble end-marker' : 'word-bubble';
+          bubble.id = bubbleId;
+          if (!isEnd && word.audio_url) bubble.setAttribute('data-audio', word.audio_url);
+
+          var arabicText = word.text_uthmani || '';
+          var arabicDiv = document.createElement('div');
+          arabicDiv.className = 'word-arabic';
+          arabicDiv.textContent = arabicText;
+          bubble.appendChild(arabicDiv);
+
+          if (!isEnd) {
+            bubbleArabicMap[bubbleId] = removeDiacritics(arabicText);
+            var tlText = (word.transliteration && word.transliteration.text) ? word.transliteration.text : '';
+            bubbleTranslitMap[bubbleId] = tlText;
+
+            var recDot = document.createElement('div');
+            recDot.className = 'rec-indicator';
+            bubble.appendChild(recDot);
+
+            var countBadge = document.createElement('div');
+            countBadge.className = 'rec-count-badge';
+            countBadge.textContent = '0';
+            bubble.appendChild(countBadge);
+
+            if (tlText) {
+              var tlDiv = document.createElement('div');
+              tlDiv.className = 'word-transliteration';
+              tlDiv.textContent = tlText;
+              bubble.appendChild(tlDiv);
+            }
+
+            var trText = (word.translation && word.translation.text) ? word.translation.text : '';
+            if (trText) {
+              var trDiv = document.createElement('div');
+              trDiv.className = 'word-translation';
+              trDiv.textContent = trText.replace(/<[^>]*>/g, '');
+              bubble.appendChild(trDiv);
+            }
+
+            // Rec actions container
+            var recActions = document.createElement('div');
+            recActions.className = 'rec-actions';
+            var recList = document.createElement('div');
+            recList.className = 'rec-list';
+            recList.id = 'reclist-' + bubbleId;
+            recActions.appendChild(recList);
+            var btnAdd = document.createElement('button');
+            btnAdd.className = 'rec-action-btn btn-add-rec';
+            btnAdd.textContent = '➕ Tambah Rekaman';
+            btnAdd.type = 'button';
+            recActions.appendChild(btnAdd);
+            bubble.appendChild(recActions);
+
+            // Detected text + Score badge (for Setoran)
+            var detText = document.createElement('div');
+            detText.className = 'detected-text';
+            bubble.appendChild(detText);
+            var scoreBadge = document.createElement('div');
+            scoreBadge.className = 'score-badge';
+            scoreBadge.textContent = '0%';
+            bubble.appendChild(scoreBadge);
+
+            // Wire events
+            (function(bub, bId, addBtn) {
+              bub.addEventListener('click', function(e) {
+                if (e.target.closest('.rec-actions')) return;
+                if (e.target.closest('.score-badge')) { showScoreDetail(bId); return; }
+                if (currentMode === 'listen') playOriginalAudio(bub);
+                else if (currentMode === 'train') startTrainRecording(bub, bId);
+                else if (currentMode === 'setoran') showToast('Gunakan tombol Rekam Setoran di atas.');
+              });
+              addBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                startTrainRecording(bub, bId);
+              });
+            })(bubble, bubbleId, btnAdd);
+          }
+
+          wordsWrap.appendChild(bubble);
+        }
+
+        verseEl.appendChild(wordsWrap);
+
+        if (verse.translations && verse.translations.length > 0) {
+          var transDiv = document.createElement('div');
+          transDiv.className = 'verse-translation';
+          transDiv.textContent = (verse.translations[0].text || '').replace(/<[^>]*>/g, '');
+          verseEl.appendChild(transDiv);
+        }
+        container.appendChild(verseEl);
+      }
+    }
+
+    /* ─── Refresh All Bubbles: Recording Indicators + Lists ─── */
+    function refreshAllBubbles() {
+      var tx = db.transaction(DB_STORE, 'readonly');
+      var store = tx.objectStore(DB_STORE);
+      var req = store.getAll();
+      req.onsuccess = function() {
+        var allData = req.result || [];
+        var dataMap = {};
+        for (var i = 0; i < allData.length; i++) dataMap[allData[i].id] = allData[i];
+
+        var allBubbles = document.querySelectorAll('.word-bubble:not(.end-marker)');
+        for (var j = 0; j < allBubbles.length; j++) {
+          var bub = allBubbles[j];
+          var bId = bub.id;
+          var d = dataMap[bId];
+          var count = (d && d.recordings) ? d.recordings.length : 0;
+
+          if (count > 0) { bub.classList.add('has-recording'); }
+          else { bub.classList.remove('has-recording'); }
+
+          var countBadge = bub.querySelector('.rec-count-badge');
+          if (countBadge) countBadge.textContent = count;
+
+          // Build recording list
+          var listEl = document.getElementById('reclist-' + bId);
+          if (listEl) {
+            listEl.textContent = '';
+            if (d && d.recordings) {
+              for (var r = 0; r < d.recordings.length; r++) {
+                buildRecListItem(listEl, bId, r, d.recordings[r]);
+              }
+            }
+          }
+        }
+      };
+    }
+
+    function buildRecListItem(listEl, bubbleId, index, rec) {
+      var item = document.createElement('div');
+      item.className = 'rec-list-item';
+
+      var durSpan = document.createElement('span');
+      durSpan.className = 'rec-dur';
+      durSpan.textContent = '#' + (index + 1) + ' (' + (rec.duration ? rec.duration.toFixed(1) + 's' : '?') + ')';
+      item.appendChild(durSpan);
+
+      var playBtn = document.createElement('button');
+      playBtn.className = 'rec-action-btn btn-play-rec';
+      playBtn.textContent = '🔊';
+      playBtn.type = 'button';
+      item.appendChild(playBtn);
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'rec-action-btn btn-del-rec';
+      delBtn.textContent = '🗑️';
+      delBtn.type = 'button';
+      item.appendChild(delBtn);
+
+      (function(bId, idx, blob, pBtn) {
+        pBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          playRecBlob(blob, pBtn);
+        });
+        delBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          deleteRecordingFromWord(bId, idx).then(function() {
+            showToast('🗑️ Rekaman #' + (idx + 1) + ' dihapus');
+            refreshAllBubbles();
+          });
+        });
+      })(bubbleId, index, rec.blob, playBtn);
+
+      listEl.appendChild(item);
+    }
+
+    function playRecBlob(blob, btn) {
+      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      var url = URL.createObjectURL(blob);
+      var audio = new Audio(url);
+      currentAudio = audio;
+      btn.classList.add('playing-rec');
+      btn.textContent = '⏸';
+      audio.play().catch(function() {});
+      audio.onended = function() { btn.classList.remove('playing-rec'); btn.textContent = '🔊'; URL.revokeObjectURL(url); currentAudio = null; };
+      audio.onerror = function() { btn.classList.remove('playing-rec'); btn.textContent = '🔊'; URL.revokeObjectURL(url); currentAudio = null; };
+    }
+
+    /* ─── Listen Mode ─── */
+    function playOriginalAudio(bubble) {
+      var audioUrl = bubble.getAttribute('data-audio');
+      if (!audioUrl) { showToast('Audio tidak tersedia'); return; }
+      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      var prev = document.querySelectorAll('.playing-audio');
+      for (var i = 0; i < prev.length; i++) prev[i].classList.remove('playing-audio');
+      var fullUrl = audioUrl.indexOf('http') === 0 ? audioUrl : AUDIO_BASE + audioUrl;
+      var audio = new Audio(fullUrl);
+      currentAudio = audio;
+      bubble.classList.add('playing-audio');
+      audio.play().catch(function() { showToast('Gagal memutar'); bubble.classList.remove('playing-audio'); });
+      audio.onended = function() { bubble.classList.remove('playing-audio'); currentAudio = null; };
+      audio.onerror = function() { bubble.classList.remove('playing-audio'); currentAudio = null; };
+    }
+
+    /* ─── Training Mode (Multi-Record) ─── */
+    function startTrainRecording(bubble, bubbleId) {
+      if (currentTrainRecord === bubbleId) {
+        if (trainMediaRecorder && trainMediaRecorder.state !== 'inactive') trainMediaRecorder.stop();
+        bubble.classList.remove('recording');
+        currentTrainRecord = null;
+        return;
+      }
+      if (currentTrainRecord) {
+        if (trainMediaRecorder && trainMediaRecorder.state !== 'inactive') trainMediaRecorder.stop();
+        var prev = document.getElementById(currentTrainRecord);
+        if (prev) prev.classList.remove('recording');
+        currentTrainRecord = null;
+      }
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function(stream) {
+          trainStream = stream;
+          trainMediaRecorder = new MediaRecorder(stream);
+          var chunks = [];
+          var startTime = Date.now();
+
+          trainMediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) chunks.push(e.data); };
+          trainMediaRecorder.onstop = function() {
+            stream.getTracks().forEach(function(t) { t.stop(); });
+            var duration = (Date.now() - startTime) / 1000;
+            if (chunks.length > 0) {
+              var blob = new Blob(chunks, { type: 'audio/webm' });
+              extractAudioFeatures(blob).then(function(features) {
+                addRecordingToWord(bubbleId, blob, duration, features).then(function() {
+                  showToast('✅ Rekaman tersimpan! (durasi: ' + duration.toFixed(1) + 's)');
+                  refreshAllBubbles();
+                });
+              });
+            }
+          };
+          trainMediaRecorder.start();
+          currentTrainRecord = bubbleId;
+          bubble.classList.add('recording');
+          showToast('🎙️ Merekam... Klik lagi untuk berhenti');
+        })
+        .catch(function() { showToast('⚠️ Gagal akses mikrofon!'); });
+    }
+
+    /* ─── Utility ─── */
+    function removeDiacritics(str) {
+      if (!str) return '';
+      return str.replace(/[\u064B-\u065F\u0670\u0640]/g, '').trim();
+    }
+
+    function levenshteinDistance(a, b) {
+      var m = [];
+      for (var i = 0; i <= b.length; i++) { m[i] = [i]; }
+      for (var j = 0; j <= a.length; j++) { m[0][j] = j; }
+      for (var i = 1; i <= b.length; i++) {
+        for (var j = 1; j <= a.length; j++) {
+          if (b.charAt(i-1) === a.charAt(j-1)) m[i][j] = m[i-1][j-1];
+          else m[i][j] = Math.min(m[i-1][j-1]+1, m[i][j-1]+1, m[i-1][j]+1);
+        }
+      }
+      return m[b.length][a.length];
+    }
+
+    function calcTextSimilarity(a, b) {
+      if (!a || !b) return 0;
+      if (a === b) return 100;
+      var d = levenshteinDistance(a, b);
+      var mx = Math.max(a.length, b.length);
+      return mx === 0 ? 100 : Math.max(0, Math.round((1 - d / mx) * 100));
+    }
+
+    function compareEnvelopes(env1, env2) {
+      if (!env1 || !env2 || env1.length === 0 || env2.length === 0) return 0;
+      var len = Math.min(env1.length, env2.length);
+      var diffSum = 0;
+      var maxVal = 0.0001;
+      for (var i = 0; i < len; i++) {
+        diffSum += Math.abs(env1[i] - env2[i]);
+        maxVal = Math.max(maxVal, env1[i], env2[i]);
+      }
+      var avgDiff = diffSum / len;
+      return Math.max(0, Math.round((1 - avgDiff / maxVal) * 100));
+    }
+
+    function compareDuration(d1, d2) {
+      if (!d1 || !d2) return 0;
+      var ratio = Math.min(d1, d2) / Math.max(d1, d2);
+      return Math.round(ratio * 100);
+    }
+
+    function compareSpectral(s1, s2) {
+      if (!s1 && !s2) return 100;
+      if (!s1 || !s2) return 0;
+      var maxS = Math.max(s1, s2, 1);
+      return Math.max(0, Math.round((1 - Math.abs(s1 - s2) / maxS) * 100));
+    }
+
+    // ═══ BAGIAN 2 akan dilanjutkan di pesan berikutnya ═══
+    // Sementara, init Bagian 1 dulu:
+    loadSurah();
+  </script>
+
+  <!-- ════════════════════════════════════════ -->
+  <!--   PASTE BAGIAN 2 DI BAWAH BARIS INI     -->
+  <!-- ════════════════════════════════════════ -->
+<script>
+  /* ═══════════════════════════════════════════════
+     BAGIAN 2 LENGKAP: Setoran + SR Fixed + Modal
+  ═══════════════════════════════════════════════ */
+
+  var setoranMediaRecorder = null;
+  var setoranChunks = [];
+  var setoranStream = null;
+  var isRecordingSetoran = false;
+  var speechRecognition = null;
+  var fullTranscript = '';
+  var setoranBlob = null;
+  var srRestartCount = 0;
+  var srMaxRestart = 20;
+  var srActive = false;
+
+  /* ═══════════════════════════════════════════════
+     Inject Status UI ke Banner Setoran
+  ═══════════════════════════════════════════════ */
+  function injectStatusUI() {
+    var banner = document.getElementById('setoranBanner');
+    if (!banner) return;
+
+    // Status bar wrapper
+    var statusBar = document.createElement('div');
+    statusBar.id = 'srStatusBar';
+    statusBar.style.cssText = [
+      'display:none',
+      'margin-top:14px',
+      'padding:12px 16px',
+      'background:rgba(0,0,0,0.25)',
+      'border-radius:12px',
+      'direction:ltr',
+      'font-size:0.8rem',
+      'text-align:left'
+    ].join(';');
+
+    // SR Status row (dot + text)
+    var srStatusRow = document.createElement('div');
+    srStatusRow.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:8px;';
+    var dot = document.createElement('div');
+    dot.id = 'srDot';
+    dot.style.cssText = 'width:10px; height:10px; border-radius:50%; background:#8899aa; flex-shrink:0; transition:background 0.3s;';
+    var srTxt = document.createElement('span');
+    srTxt.id = 'srStatusTxt';
+    srTxt.style.cssText = 'color:#8899aa; font-size:0.82rem;';
+    srTxt.textContent = 'Menunggu...';
+    srStatusRow.appendChild(dot);
+    srStatusRow.appendChild(srTxt);
+    statusBar.appendChild(srStatusRow);
+
+    // Error box
+    var errBox = document.createElement('div');
+    errBox.id = 'srErrorBox';
+    errBox.style.cssText = [
+      'display:none',
+      'color:#ef9a9a',
+      'font-size:0.75rem',
+      'margin-bottom:8px',
+      'padding:8px 12px',
+      'background:rgba(239,83,80,0.08)',
+      'border:1px solid rgba(239,83,80,0.2)',
+      'border-radius:8px',
+      'line-height:1.5'
+    ].join(';');
+    statusBar.appendChild(errBox);
+
+    // Debug info
+    var debugInfo = document.createElement('div');
+    debugInfo.id = 'srDebugInfo';
+    debugInfo.style.cssText = 'font-size:0.65rem; color:#546e7a; margin-bottom:8px; line-height:1.5;';
+    statusBar.appendChild(debugInfo);
+
+    // Language selector row
+    var langRow = document.createElement('div');
+    langRow.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;';
+    var langLabel = document.createElement('label');
+    langLabel.style.cssText = 'font-size:0.75rem; color:#8899aa;';
+    langLabel.textContent = '🌐 Bahasa STT:';
+    var langSel = document.createElement('select');
+    langSel.id = 'srLangSelect';
+    langSel.style.cssText = [
+      'padding:4px 10px',
+      'border-radius:8px',
+      'border:1px solid rgba(100,181,246,0.3)',
+      'background:rgba(255,255,255,0.05)',
+      'color:#90caf9',
+      'font-size:0.75rem',
+      'cursor:pointer',
+      'outline:none'
+    ].join(';');
+    var langs = [
+      { v: 'ar-SA', l: '🇸🇦 Arab Saudi (ar-SA)' },
+      { v: 'ar-EG', l: '🇪🇬 Arab Mesir (ar-EG)' },
+      { v: 'ar',    l: '🌍 Arab Universal (ar)'  },
+      { v: 'id-ID', l: '🇮🇩 Indonesia (Tes)'     }
+    ];
+    for (var i = 0; i < langs.length; i++) {
+      var opt = document.createElement('option');
+      opt.value = langs[i].v;
+      opt.textContent = langs[i].l;
+      langSel.appendChild(opt);
+    }
+    langRow.appendChild(langLabel);
+    langRow.appendChild(langSel);
+    statusBar.appendChild(langRow);
+
+    // Test button
+    var testBtn = document.createElement('button');
+    testBtn.textContent = '🔬 Test Speech Recognition Dulu';
+    testBtn.style.cssText = [
+      'padding:7px 14px',
+      'border-radius:20px',
+      'border:1px solid rgba(100,181,246,0.3)',
+      'background:rgba(100,181,246,0.1)',
+      'color:#90caf9',
+      'font-size:0.75rem',
+      'cursor:pointer',
+      'width:100%',
+      'transition:all 0.2s'
+    ].join(';');
+    testBtn.onmouseover = function() { testBtn.style.background = 'rgba(100,181,246,0.2)'; };
+    testBtn.onmouseout  = function() { testBtn.style.background = 'rgba(100,181,246,0.1)'; };
+    testBtn.onclick = runSRTest;
+    statusBar.appendChild(testBtn);
+
+    banner.appendChild(statusBar);
+
+    // Inject live transcript + label (jika belum ada)
+    if (!document.getElementById('liveTranscript')) {
+      var liveBox = document.createElement('div');
+      liveBox.id = 'liveTranscript';
+      liveBox.className = 'live-transcript';
+      liveBox.textContent = 'Menunggu suaramu...';
+      banner.appendChild(liveBox);
+
+      var liveLabel = document.createElement('div');
+      liveLabel.id = 'liveTranscriptLabel';
+      liveLabel.className = 'live-transcript-label';
+      liveLabel.textContent = '⬆ Teks real-time (putih=final, biru=sedang diproses)';
+      banner.appendChild(liveLabel);
+    }
+  }
+
+  /* ─── Helpers SR Status ─── */
+  function setSRStatus(msg, color, dotColor) {
+    var bar = document.getElementById('srStatusBar');
+    var d   = document.getElementById('srDot');
+    var t   = document.getElementById('srStatusTxt');
+    if (bar) bar.style.display = 'block';
+    if (d)   d.style.background = dotColor || '#8899aa';
+    if (t)   { t.textContent = msg; t.style.color = color || '#8899aa'; }
+  }
+
+  function setSRError(msg) {
+    var e = document.getElementById('srErrorBox');
+    if (!e) return;
+    if (msg) { e.style.display = 'block'; e.textContent = '⚠️ ' + msg; }
+    else      { e.style.display = 'none';  e.textContent = '';          }
+  }
+
+  function setSRDebug(msg) {
+    var d = document.getElementById('srDebugInfo');
+    if (d) d.textContent = msg;
+  }
+
+  function getLang() {
+    var s = document.getElementById('srLangSelect');
+    return s ? s.value : 'ar-SA';
+  }
+
+  /* ═══════════════════════════════════════════════
+     Quick SR Test
+  ═══════════════════════════════════════════════ */
+  function runSRTest() {
+    var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      setSRStatus('❌ Tidak didukung browser ini!', '#ef9a9a', '#ef5350');
+      setSRError('Gunakan Google Chrome. Firefox & Safari tidak mendukung Web Speech API untuk bahasa Arab.');
+      return;
+    }
+
+    var langVal = getLang();
+    setSRStatus('⏳ Testing...', '#ffca28', '#ffca28');
+    setSRError('');
+    setSRDebug('Membuka koneksi ke Google Speech Server (' + langVal + ')...');
+
+    var sr = new SpeechRec();
+    sr.lang = langVal;
+    sr.continuous = false;
+    sr.interimResults = false;
+    sr.maxAlternatives = 1;
+
+    sr.onstart = function() {
+      setSRStatus('✅ SR Aktif! Coba ucapkan sesuatu...', '#66bb6a', '#66bb6a');
+      setSRDebug('SR started. Menunggu suara...');
+    };
+
+    sr.onresult = function(event) {
+      var txt  = event.results[0][0].transcript;
+      var conf = (event.results[0][0].confidence * 100).toFixed(1);
+      setSRStatus('✅ Berhasil! Terdeteksi: "' + txt + '"', '#66bb6a', '#66bb6a');
+      setSRDebug('Confidence: ' + conf + '% | SR siap digunakan!');
+      setSRError('');
+    };
+
+    sr.onerror = function(e) {
+      var msgs = {
+        'not-allowed'       : 'Izin mikrofon ditolak! Klik ikon kunci di address bar Chrome lalu izinkan mikrofon.',
+        'network'           : 'Tidak ada koneksi internet! Web Speech API wajib online (audio dikirim ke server Google).',
+        'no-speech'         : 'Tidak ada suara terdeteksi. Coba bicara lebih keras.',
+        'aborted'           : 'SR dibatalkan.',
+        'audio-capture'     : 'Mikrofon tidak ditemukan atau tidak bisa diakses.',
+        'service-not-allowed': 'Halaman ini tidak diizinkan. Pastikan buka via localhost atau https://'
+      };
+      setSRStatus('❌ Error: ' + e.error, '#ef9a9a', '#ef5350');
+      setSRError(msgs[e.error] || 'Error tidak dikenal: ' + e.error);
+      setSRDebug('Error code: ' + e.error);
+    };
+
+    sr.onend = function() {
+      setSRDebug(function() {
+        var el = document.getElementById('srStatusTxt');
+        return 'SR ended. Status: ' + (el ? el.textContent : '');
+      }());
+    };
+
+    try { sr.start(); }
+    catch(err) {
+      setSRStatus('❌ Gagal start SR', '#ef9a9a', '#ef5350');
+      setSRError('Exception: ' + err.message);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     Start Setoran (Fixed + Auto-restart SR)
+  ═══════════════════════════════════════════════ */
+  function startSetoran() {
+    clearSetoranScores();
+    fullTranscript  = '';
+    setoranBlob     = null;
+    srRestartCount  = 0;
+    srActive        = false;
+
+    var liveBox   = document.getElementById('liveTranscript');
+    var liveLabel = document.getElementById('liveTranscriptLabel');
+    if (liveBox)   { liveBox.textContent = 'Menunggu suaramu...'; liveBox.classList.add('show');   }
+    if (liveLabel) { liveLabel.classList.add('show'); }
+
+    var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      setSRStatus('❌ Tidak didukung!', '#ef9a9a', '#ef5350');
+      setSRError('Gunakan Google Chrome. Firefox/Edge tidak mendukung Web Speech API untuk bahasa Arab.');
+      showToast('⚠️ Gunakan Chrome untuk fitur ini!');
+      return;
+    }
+
+    setSRError('');
+    setSRStatus('⏳ Menghubungkan ke server Google Speech...', '#ffca28', '#ffca28');
+    setSRDebug('Inisialisasi mikrofon...');
+
+    var langVal = getLang();
+
+    /* ─── Inner: Create & Start SR ─── */
+    function createAndStartSR() {
+      if (!isRecordingSetoran) return;
+      if (srRestartCount >= srMaxRestart) {
+        setSRStatus('⚠️ SR berhenti (max restart tercapai)', '#ffca28', '#ffca28');
+        setSRDebug('Restart: ' + srRestartCount + '/' + srMaxRestart);
+        return;
+      }
+
+      try {
+        if (speechRecognition) {
+          try { speechRecognition.abort(); } catch(e) {}
+          speechRecognition = null;
+        }
+
+        var sr = new SpeechRec();
+        sr.lang            = langVal;
+        sr.continuous      = true;
+        sr.interimResults  = true;
+        sr.maxAlternatives = 3;
+
+        sr.onstart = function() {
+          srActive = true;
+          setSRStatus('🎙️ Aktif — bacalah Al-Fatihah sekarang!', '#66bb6a', '#66bb6a');
+          setSRDebug('SR aktif | Bahasa: ' + langVal + ' | Restart ke-' + srRestartCount);
+        };
+
+        sr.onresult = function(event) {
+          setSRError('');
+          var interim     = '';
+          var finalChunk  = '';
+
+          for (var i = event.resultIndex; i < event.results.length; i++) {
+            // Ambil alternatif terbaik (confidence tertinggi)
+            var best     = '';
+            var bestConf = -1;
+            for (var alt = 0; alt < event.results[i].length; alt++) {
+              if (event.results[i][alt].confidence >= bestConf) {
+                bestConf = event.results[i][alt].confidence;
+                best     = event.results[i][alt].transcript;
+              }
+            }
+
+            if (event.results[i].isFinal) {
+              finalChunk += best + ' ';
+            } else {
+              interim += best;
+            }
+          }
+
+          if (finalChunk) fullTranscript += finalChunk;
+
+          // Update live box: final (putih) + interim (biru)
+          var lb = document.getElementById('liveTranscript');
+          if (lb) {
+            lb.textContent = '';
+            var finalSpan = document.createElement('span');
+            finalSpan.style.color = '#e0e0e0';
+            finalSpan.textContent = fullTranscript;
+            var interimSpan = document.createElement('span');
+            interimSpan.style.cssText = 'color:#64b5f6; font-style:italic;';
+            interimSpan.textContent = interim;
+            lb.appendChild(finalSpan);
+            lb.appendChild(interimSpan);
+          }
+
+          setSRDebug(
+            'Final: ' + fullTranscript.length + ' char | ' +
+            'Interim: "' + interim.slice(0, 30) + (interim.length > 30 ? '...' : '') + '"'
+          );
+        };
+
+        sr.onerror = function(e) {
+          srActive = false;
+          setSRDebug('Error: ' + e.error + ' | Restart: ' + srRestartCount);
+
+          if (e.error === 'no-speech') {
+            setSRStatus('🔇 Tidak ada suara, menunggu lagi...', '#ffca28', '#ffca28');
+            // Biarkan onend menangani restart
+          } else if (e.error === 'network') {
+            setSRStatus('❌ Tidak ada internet!', '#ef9a9a', '#ef5350');
+            setSRError('Web Speech API WAJIB terhubung internet. Audio dikirim ke server Google untuk diproses. Cek koneksi WiFi/data kamu.');
+            return; // Jangan restart
+          } else if (e.error === 'not-allowed') {
+            setSRStatus('❌ Izin mikrofon ditolak!', '#ef9a9a', '#ef5350');
+            setSRError('Izin mikrofon ditolak. Klik ikon kunci/info di address bar Chrome, lalu izinkan mikrofon.');
+            return; // Jangan restart
+          } else if (e.error === 'aborted') {
+            return; // Diabort manual
+          } else {
+            setSRStatus('⚠️ Error: ' + e.error, '#ffca28', '#ffca28');
+            setSRError('Error: ' + e.error + '. Gunakan tombol Test di atas untuk diagnosa.');
+          }
+        };
+
+        sr.onend = function() {
+          srActive = false;
+          setSRDebug('SR ended | isRecording: ' + isRecordingSetoran + ' | restart: ' + srRestartCount);
+
+          if (isRecordingSetoran && srRestartCount < srMaxRestart) {
+            srRestartCount++;
+            var delay = srRestartCount < 3 ? 300 : 800;
+            setTimeout(createAndStartSR, delay);
+          } else if (!isRecordingSetoran) {
+            setSRStatus('⏹ Selesai.', '#c9a84c', '#c9a84c');
+          }
+        };
+
+        speechRecognition = sr;
+        sr.start();
+
+      } catch(err) {
+        setSRStatus('❌ Exception: ' + err.message, '#ef9a9a', '#ef5350');
+        setSRError('Gagal memulai SR: ' + err.message);
+      }
+    }
+
+    /* ─── Mulai: Audio Recording dulu, lalu SR ─── */
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function(stream) {
+        setoranStream       = stream;
+        setoranMediaRecorder = new MediaRecorder(stream);
+        setoranChunks       = [];
+
+        setoranMediaRecorder.ondataavailable = function(e) {
+          if (e.data.size > 0) setoranChunks.push(e.data);
+        };
+
+        setoranMediaRecorder.onstop = function() {
+          stream.getTracks().forEach(function(t) { t.stop(); });
+          setoranBlob = new Blob(setoranChunks, { type: 'audio/webm' });
+          // Tunggu SR benar-benar selesai sebelum analisis
+          setTimeout(runSetoranAnalysis, 1000);
+        };
+
+        setoranMediaRecorder.start();
+        isRecordingSetoran = true;
+
+        document.getElementById('btnStartSetoran').classList.add('hidden');
+        document.getElementById('btnStopSetoran').classList.add('active');
+        showToast('🎙️ Merekam... Bacalah Al-Fatihah sekarang!');
+
+        // Mulai SR sedikit terlambat agar mic stream stabil
+        setTimeout(createAndStartSR, 400);
+      })
+      .catch(function(err) {
+        setSRStatus('❌ Mikrofon gagal!', '#ef9a9a', '#ef5350');
+        setSRError('Gagal akses mikrofon: ' + err.message + '. Pastikan izin mikrofon diberikan.');
+        showToast('⚠️ Gagal akses mikrofon!');
+      });
+  }
+
+  /* ─── Stop Setoran ─── */
+  function stopSetoran() {
+    isRecordingSetoran = false;
+    srRestartCount     = srMaxRestart; // Paksa hentikan loop restart
+
+    setSRStatus('⏳ Menghentikan & memproses analisis...', '#c9a84c', '#c9a84c');
+
+    if (speechRecognition) {
+      try { speechRecognition.stop(); } catch(e) {}
+      speechRecognition = null;
+    }
+
+    if (setoranMediaRecorder && setoranMediaRecorder.state !== 'inactive') {
+      setoranMediaRecorder.stop();
+    }
+
+    document.getElementById('btnStartSetoran').classList.remove('hidden');
+    document.getElementById('btnStopSetoran').classList.remove('active');
+    showToast('⏳ Memproses analisis...');
+  }
+
+  /* ═══════════════════════════════════════════════
+     Setoran Analysis — Real Multi-Factor Scoring
+  ═══════════════════════════════════════════════ */
+  function runSetoranAnalysis() {
+    var overlay = document.getElementById('analyzerOverlay');
+    var aText   = document.getElementById('analyzerText');
+    var aBar    = document.getElementById('analyzerBar');
+    overlay.classList.add('show');
+    aBar.style.width = '0%';
+    aText.textContent = 'Memproses Speech Recognition...';
+
+    // Ambil semua bubble (bukan end marker)
+    var bubbles   = document.querySelectorAll('.word-bubble:not(.end-marker)');
+    var bubbleIds = [];
+    for (var i = 0; i < bubbles.length; i++) bubbleIds.push(bubbles[i].id);
+
+    // Split transcript jadi array kata
+    var rawWords     = fullTranscript.trim().split(/\s+/);
+    var detectedWords = [];
+    for (var i = 0; i < rawWords.length; i++) {
+      if (rawWords[i].trim()) detectedWords.push(rawWords[i].trim());
+    }
+
+    aBar.style.width = '15%';
+    aText.textContent = 'Memuat data Training (' + bubbleIds.length + ' kata)...';
+
+    // Load semua data training
+    var trainingDataMap = {};
+    var loadPromises    = [];
+
+    for (var b = 0; b < bubbleIds.length; b++) {
+      (function(bId) {
+        loadPromises.push(
+          getWordData(bId).then(function(data) {
+            trainingDataMap[bId] = data;
+          })
+        );
+      })(bubbleIds[b]);
+    }
+
+    Promise.all(loadPromises).then(function() {
+      aBar.style.width = '30%';
+      aText.textContent = 'Mengekstrak fitur audio setoran...';
+
+      if (!setoranBlob || setoranBlob.size === 0) {
+        overlay.classList.remove('show');
+        showToast('⚠️ Rekaman setoran kosong!');
+        return;
+      }
+
+      extractAudioFeatures(setoranBlob).then(function(fullFeatures) {
+        var totalDuration  = fullFeatures.duration || 1;
+        var totalWords     = bubbleIds.length;
+        var perWordDur     = totalDuration / Math.max(totalWords, 1);
+        var fullEnvelope   = fullFeatures.envelope || [];
+
+        aBar.style.width = '55%';
+        aText.textContent = 'Menghitung skor kemiripan per kata...';
+
+        // Estimasi fitur per kata dari envelope keseluruhan
+        var perWordFeatures = [];
+        for (var w = 0; w < totalWords; w++) {
+          var startBin = Math.floor((w / totalWords) * fullEnvelope.length);
+          var endBin   = Math.floor(((w + 1) / totalWords) * fullEnvelope.length);
+          var wordEnv  = fullEnvelope.slice(startBin, Math.max(endBin, startBin + 1));
+          var wordRms  = 0;
+          for (var e = 0; e < wordEnv.length; e++) wordRms += wordEnv[e];
+          wordRms = wordEnv.length > 0 ? wordRms / wordEnv.length : 0;
+
+          perWordFeatures.push({
+            duration         : perWordDur,
+            rms              : wordRms,
+            zcr              : fullFeatures.zcr,
+            spectralCentroid : fullFeatures.spectralCentroid,
+            envelope         : wordEnv
+          });
+        }
+
+        aBar.style.width = '75%';
+        aText.textContent = 'Menyusun hasil dan pewarnaan...';
+
+        setTimeout(function() {
+          var sumTotal = 0;
+          var cntTotal = 0;
+
+          for (var idx = 0; idx < bubbleIds.length; idx++) {
+            var bId     = bubbleIds[idx];
+            var bub     = document.getElementById(bId);
+            var badge   = bub ? bub.querySelector('.score-badge')   : null;
+            var detEl   = bub ? bub.querySelector('.detected-text') : null;
+            if (!bub || !badge || !detEl) continue;
+
+            var originalArabic = bubbleArabicMap[bId]   || '';
+            var detectedWord   = idx < detectedWords.length ? detectedWords[idx] : '';
+            var detectedClean  = removeDiacritics(detectedWord);
+
+            /* ── 1. Text Score (Levenshtein) — bobot 40% ── */
+            var textScore = calcTextSimilarity(originalArabic, detectedClean);
+
+            /* ── 2. Duration Score — bobot 20% ── */
+            var durationScore       = 0;
+            var trainingAvgDuration = 0;
+            var setoranWordDur      = perWordFeatures[idx] ? perWordFeatures[idx].duration : 0;
+            var tData               = trainingDataMap[bId];
+            var hasTraining         = (tData && tData.recordings && tData.recordings.length > 0);
+
+            if (hasTraining) {
+              var durSum = 0; var durCount = 0;
+              for (var r = 0; r < tData.recordings.length; r++) {
+                var rf = tData.recordings[r].features;
+                if (rf && rf.duration) { durSum += rf.duration; durCount++; }
+              }
+              trainingAvgDuration = durCount > 0 ? durSum / durCount : 0;
+              durationScore       = compareDuration(setoranWordDur, trainingAvgDuration);
+            }
+
+            /* ── 3. Spectral Score — bobot 20% ── */
+            var spectralScore       = 0;
+            var trainingAvgSpectral = 0;
+            var setoranSpectral     = perWordFeatures[idx] ? perWordFeatures[idx].spectralCentroid : 0;
+
+            if (hasTraining) {
+              var specSum = 0; var specCount = 0;
+              for (var r = 0; r < tData.recordings.length; r++) {
+                var rf = tData.recordings[r].features;
+                if (rf && rf.spectralCentroid) { specSum += rf.spectralCentroid; specCount++; }
+              }
+              trainingAvgSpectral = specCount > 0 ? specSum / specCount : 0;
+              spectralScore       = compareSpectral(setoranSpectral, trainingAvgSpectral);
+            }
+
+            /* ── 4. Envelope Score — bobot 20% ── */
+            var envelopeScore = 0;
+            if (hasTraining) {
+              var envScores = [];
+              for (var r = 0; r < tData.recordings.length; r++) {
+                var rf = tData.recordings[r].features;
+                if (rf && rf.envelope && rf.envelope.length > 0) {
+                  var setoranEnv = perWordFeatures[idx] ? perWordFeatures[idx].envelope : [];
+                  envScores.push(compareEnvelopes(setoranEnv, rf.envelope));
+                }
+              }
+              if (envScores.length > 0) {
+                var envSum = 0;
+                for (var es = 0; es < envScores.length; es++) envSum += envScores[es];
+                envelopeScore = Math.round(envSum / envScores.length);
+              }
+            }
+
+            /* ── Total Score ── */
+            var totalScore;
+            if (hasTraining) {
+              totalScore = Math.round(
+                textScore     * 0.40 +
+                durationScore * 0.20 +
+                spectralScore * 0.20 +
+                envelopeScore * 0.20
+              );
+            } else {
+              totalScore = textScore; // Hanya teks jika belum ada training
+            }
+            totalScore = Math.max(0, Math.min(100, totalScore));
+
+            // Simpan untuk modal detail
+            setoranScoreData[bId] = {
+              detected            : detectedWord,
+              original            : bubbleArabicMap[bId],
+              translit            : bubbleTranslitMap[bId],
+              textScore           : textScore,
+              durationScore       : durationScore,
+              spectralScore       : spectralScore,
+              envelopeScore       : envelopeScore,
+              totalScore          : totalScore,
+              hasTraining         : hasTraining,
+              trainingCount       : hasTraining ? tData.recordings.length : 0,
+              setoranDuration     : setoranWordDur,
+              trainingAvgDuration : trainingAvgDuration,
+              setoranSpectral     : setoranSpectral,
+              trainingAvgSpectral : trainingAvgSpectral
+            };
+
+            // Update tampilan bubble
+            detEl.textContent = detectedWord || '—';
+            detEl.classList.add('show');
+            detEl.classList.remove('match', 'partial', 'mismatch');
+            badge.style.display    = 'block';
+            badge.style.color      = '';
+            badge.style.background = '';
+            bub.classList.remove('score-red', 'score-yellow', 'score-green');
+
+            if (!detectedWord) {
+              badge.textContent      = 'Tidak terdeteksi';
+              badge.style.color      = '#8899aa';
+              badge.style.background = 'rgba(255,255,255,0.08)';
+              bub.classList.add('score-red');
+              detEl.classList.add('mismatch');
+            } else if (totalScore < 30) {
+              badge.textContent = totalScore + '% ▸ Detail';
+              bub.classList.add('score-red');
+              detEl.classList.add('mismatch');
+            } else if (totalScore <= 60) {
+              badge.textContent = totalScore + '% ▸ Detail';
+              bub.classList.add('score-yellow');
+              detEl.classList.add('partial');
+            } else {
+              badge.textContent = totalScore + '% ▸ Detail';
+              bub.classList.add('score-green');
+              detEl.classList.add('match');
+            }
+
+            sumTotal += totalScore;
+            cntTotal++;
+          }
+
+          aBar.style.width = '100%';
+          aText.textContent = 'Selesai!';
+
+          setTimeout(function() {
+            overlay.classList.remove('show');
+            var avg = cntTotal > 0 ? Math.round(sumTotal / cntTotal) : 0;
+            showToast(
+              '✅ Skor rata-rata: ' + avg + '% | ' +
+              'Kata terdeteksi: ' + detectedWords.length + '/' + bubbleIds.length
+            );
+            setSRStatus('✅ Analisis selesai! Klik badge skor untuk detail.', '#66bb6a', '#66bb6a');
+          }, 500);
+
+        }, 600);
+      });
+    });
+  }
+
+  /* ═══════════════════════════════════════════════
+     Score Detail Modal
+  ═══════════════════════════════════════════════ */
+  function showScoreDetail(bubbleId) {
+    var data = setoranScoreData[bubbleId];
+    if (!data) { showToast('Belum ada data skor. Lakukan Setoran dulu.'); return; }
+
+    var modal = document.getElementById('modalOverlay');
+    var card  = document.getElementById('modalCard');
+    card.textContent = '';
+
+    /* ─── Header ─── */
+    var header = document.createElement('div');
+    header.className = 'modal-header';
+    var h2 = document.createElement('h2');
+    h2.textContent = '📊 Detail Skor Kata';
+    header.appendChild(h2);
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'modal-close';
+    closeBtn.textContent = '✕';
+    closeBtn.onclick = function() { modal.classList.remove('show'); };
+    header.appendChild(closeBtn);
+    card.appendChild(header);
+
+    /* ─── Arabic Original ─── */
+    var origAr = document.createElement('div');
+    origAr.className = 'modal-word-ar';
+    origAr.textContent = data.original || '';
+    card.appendChild(origAr);
+
+    if (data.translit) {
+      var origTl = document.createElement('div');
+      origTl.className = 'modal-word-tl';
+      origTl.textContent = data.translit;
+      card.appendChild(origTl);
+    }
+
+    /* ─── Detected Word ─── */
+    var detDiv = document.createElement('div');
+    detDiv.className = 'modal-detected ' +
+      (data.totalScore >= 60 ? 'match' : data.totalScore >= 30 ? 'partial' : 'mismatch');
+    detDiv.textContent = 'Terdeteksi: ' + (data.detected || '— tidak terdeteksi —');
+    card.appendChild(detDiv);
+
+    /* ─── Training Info ─── */
+    var trainInfo = document.createElement('div');
+    trainInfo.style.cssText = 'text-align:center; font-size:0.75rem; color:#8899aa; margin-bottom:16px; direction:ltr;';
+    trainInfo.textContent = data.hasTraining
+      ? '📁 Data Training: ' + data.trainingCount + ' rekaman tersimpan'
+      : '⚠️ Belum ada data Training — skor hanya berdasarkan teks.';
+    card.appendChild(trainInfo);
+
+    /* ─── Duration Compare ─── */
+    if (data.hasTraining) {
+      var durRow = document.createElement('div');
+      durRow.className = 'duration-compare';
+
+      function makeDurItem(val, label, color) {
+        var item = document.createElement('div');
+        item.className = 'dur-item';
+        var valEl = document.createElement('div');
+        valEl.className = 'dur-val';
+        valEl.style.color = color;
+        valEl.textContent = val ? parseFloat(val).toFixed(2) + 's' : '?';
+        var lblEl = document.createElement('div');
+        lblEl.className = 'dur-lbl';
+        lblEl.textContent = label;
+        item.appendChild(valEl); item.appendChild(lblEl);
+        return item;
+      }
+
+      function makeVsItem() {
+        var item = document.createElement('div');
+        item.className = 'dur-item';
+        var valEl = document.createElement('div');
+        valEl.className = 'dur-val';
+        valEl.style.color = '#556677';
+        valEl.textContent = 'vs';
+        item.appendChild(valEl);
+        return item;
+      }
+
+      durRow.appendChild(makeDurItem(data.setoranDuration,     'Setoran',       '#64b5f6'));
+      durRow.appendChild(makeVsItem());
+      durRow.appendChild(makeDurItem(data.trainingAvgDuration, 'Training (avg)', '#c9a84c'));
+      card.appendChild(durRow);
+    }
+
+    /* ─── Score Bars ─── */
+    var section = document.createElement('div');
+    section.className = 'score-section';
+    var sTitle = document.createElement('div');
+    sTitle.className = 'score-section-title';
+    sTitle.textContent = '📈 Breakdown Skor Kemiripan';
+    section.appendChild(sTitle);
+
+    var bars = data.hasTraining
+      ? [
+          { label: 'Teks (40%)',      value: data.textScore     },
+          { label: 'Durasi (20%)',    value: data.durationScore },
+          { label: 'Frekuensi (20%)', value: data.spectralScore },
+          { label: 'Energi (20%)',    value: data.envelopeScore }
+        ]
+      : [
+          { label: 'Teks (100%)', value: data.textScore }
+        ];
+
+    for (var b = 0; b < bars.length; b++) {
+      (function(bar, index) {
+        var barWrap = document.createElement('div');
+        barWrap.className = 'score-bar-wrap';
+
+        var barLabel = document.createElement('div');
+        barLabel.className = 'score-bar-label';
+        barLabel.textContent = bar.label;
+        barWrap.appendChild(barLabel);
+
+        var barTrack = document.createElement('div');
+        barTrack.className = 'score-bar-track';
+        var barFill = document.createElement('div');
+        barFill.className = 'score-bar-fill ' +
+          (bar.value < 30 ? 'red' : bar.value <= 60 ? 'yellow' : 'green');
+        barFill.style.width = '0%';
+        barTrack.appendChild(barFill);
+        barWrap.appendChild(barTrack);
+
+        var barVal = document.createElement('div');
+        barVal.className = 'score-bar-value';
+        barVal.style.color = bar.value < 30 ? '#ef5350' : bar.value <= 60 ? '#ffca28' : '#66bb6a';
+        barVal.textContent = bar.value + '%';
+        barWrap.appendChild(barVal);
+
+        section.appendChild(barWrap);
+
+        // Animate fill setelah modal muncul
+        setTimeout(function() { barFill.style.width = bar.value + '%'; }, 120 + index * 120);
+      })(bars[b], b);
+    }
+    card.appendChild(section);
+
+    /* ─── Penjelasan ─── */
+    var explBox = document.createElement('div');
+    explBox.style.cssText = [
+      'margin-top:14px',
+      'padding:12px',
+      'background:rgba(255,255,255,0.03)',
+      'border-radius:10px',
+      'direction:ltr',
+      'font-size:0.7rem',
+      'color:#6d8299',
+      'line-height:1.7'
+    ].join(';');
+
+    var explTitle = document.createElement('div');
+    explTitle.style.cssText = 'font-weight:bold; color:#8899aa; margin-bottom:6px;';
+    explTitle.textContent = '💡 Penjelasan Skor:';
+    explBox.appendChild(explTitle);
+
+    var explanations = data.hasTraining
+      ? [
+          '• Teks (40%): Kemiripan huruf Arab antara yang kamu ucapkan vs teks Quran asli, dihitung dengan Levenshtein Distance.',
+          '• Durasi (20%): Perbandingan panjang waktu pengucapan kata setoran vs rata-rata dari rekaman Training-mu.',
+          '• Frekuensi (20%): Kemiripan karakter suara (Spectral Centroid) — apakah nada suaramu mirip dengan data Training.',
+          '• Energi (20%): Perbandingan pola keras-lembutnya suara (Energy Envelope) antara setoran dan Training.'
+        ]
+      : [
+          '• Teks (100%): Hanya menggunakan kemiripan teks karena belum ada data Training untuk kata ini.',
+          '• 💡 Tip: Rekam kata ini di Mode Training agar skor lebih akurat (mencakup durasi, frekuensi, dan energi suara).'
+        ];
+
+    for (var ex = 0; ex < explanations.length; ex++) {
+      var exP = document.createElement('div');
+      exP.textContent = explanations[ex];
+      exP.style.marginBottom = '4px';
+      explBox.appendChild(exP);
+    }
+    card.appendChild(explBox);
+
+    /* ─── Total Score Box ─── */
+    var totalBox = document.createElement('div');
+    totalBox.className = 'total-score-box ' +
+      (data.totalScore < 30 ? 'red' : data.totalScore <= 60 ? 'yellow' : 'green');
+    var totalNum = document.createElement('div');
+    totalNum.className = 'total-score-num';
+    totalNum.textContent = data.totalScore + '%';
+    totalBox.appendChild(totalNum);
+    var totalLbl = document.createElement('div');
+    totalLbl.className = 'total-score-label';
+    totalLbl.textContent =
+      data.totalScore < 30  ? '❌ Perlu Banyak Latihan'          :
+      data.totalScore <= 60 ? '⚠️ Cukup Baik, Terus Berlatih!'   :
+      data.totalScore <= 85 ? '✅ Bagus! Pertahankan.'            :
+                              '🌟 Sangat Bagus! Masya Allah!';
+    totalBox.appendChild(totalLbl);
+    card.appendChild(totalBox);
+
+    /* ─── Show Modal ─── */
+    modal.classList.add('show');
+    modal.onclick = function(e) {
+      if (e.target === modal) modal.classList.remove('show');
+    };
+  }
+
+  /* ═══════════════════════════════════════════════
+     Init Bagian 2
+  ═══════════════════════════════════════════════ */
+  // Inject status UI setelah DOM siap
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectStatusUI);
+  } else {
+    injectStatusUI();
+  }
+</script>
+</body>
+</html>
