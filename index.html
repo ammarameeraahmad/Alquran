@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Surat Al-Fatihah — Mode Setoran AI</title>
+  <title>Surat Al-Fatihah — Mode Lengkap (Listen, Train, Setoran)</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -35,6 +35,514 @@
     .surah-header h1 { font-size: 2rem; color: #c9a84c; font-weight: 700; letter-spacing: 1px; }
 
     /* ─── Mode Bar ─── */
+    .mode-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 26px;
+      flex-wrap: wrap;
+    }
+
+    .btn-mode {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: 28px;
+      border: 2px solid rgba(201, 168, 76, 0.3);
+      background: transparent;
+      color: #c9a84c;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-mode:hover { background: rgba(201, 168, 76, 0.08); }
+    .btn-mode.active-listen { background: rgba(201, 168, 76, 0.15); border-color: #c9a84c; }
+    .btn-mode.active-train { background: rgba(229, 115, 115, 0.12); border-color: #e57373; color: #e57373; }
+    .btn-mode.active-setoran { background: rgba(100, 181, 246, 0.15); border-color: #64b5f6; color: #64b5f6; }
+
+    /* ─── Banners ─── */
+    .banner {
+      display: none;
+      text-align: center;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      border-radius: 14px;
+      animation: fadeIn 0.3s;
+    }
+    .banner.show { display: block; }
+
+    /* Banner Listen */
+    .listen-banner { background: rgba(201, 168, 76, 0.08); border: 1px solid rgba(201, 168, 76, 0.2); }
+    .listen-banner p { color: #c9a84c; font-size: 0.85rem; }
+
+    /* Banner Training */
+    .training-banner { background: rgba(229, 115, 115, 0.08); border: 1px solid rgba(229, 115, 115, 0.2); }
+    .training-banner p { color: #ef9a9a; font-size: 0.85rem; }
+
+    /* Banner Setoran */
+    .setoran-banner { background: rgba(100, 181, 246, 0.08); border: 1px solid rgba(100, 181, 246, 0.2); }
+    .setoran-banner p { color: #90caf9; font-size: 0.85rem; margin-bottom: 12px; }
+    
+    .btn-main-action {
+      padding: 10px 28px;
+      border-radius: 30px;
+      border: none;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .btn-start-setoran { background: linear-gradient(135deg, #64b5f6, #1e88e5); color: #fff; }
+    .btn-stop-setoran { background: linear-gradient(135deg, #ef5350, #c62828); color: #fff; display: none; }
+    .btn-stop-setoran.active { display: inline-block; animation: pulse 1s infinite; }
+    .btn-start-setoran.hidden { display: none; }
+
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── Verse & Bubbles ─── */
+    .verse { margin-bottom: 28px; padding: 20px; background: rgba(255, 255, 255, 0.025); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .words-container { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; direction: rtl; margin-bottom: 12px; }
+    
+    .word-bubble {
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      background: linear-gradient(145deg, rgba(201, 168, 76, 0.1), rgba(201, 168, 76, 0.03));
+      border: 1px solid rgba(201, 168, 76, 0.2);
+      border-radius: 16px; padding: 14px 18px 10px; min-width: 80px;
+      cursor: pointer; transition: all 0.3s ease; position: relative;
+    }
+    .word-bubble:hover {
+      transform: translateY(-4px) scale(1.04);
+      box-shadow: 0 8px 25px rgba(201, 168, 76, 0.2);
+      border-color: rgba(201, 168, 76, 0.5);
+    }
+    
+    .word-arabic { font-family: 'Traditional Arabic', 'Amiri', serif; font-size: 1.7rem; color: #fff; margin-bottom: 6px; }
+    .word-transliteration { font-size: 0.7rem; color: #c9a84c; margin-bottom: 3px; font-style: italic; }
+    .word-translation { font-size: 0.68rem; color: #8899aa; text-align: center; direction: ltr; max-width: 100px; }
+
+    /* Marker */
+    .word-bubble.end-marker { background: transparent; border: none; min-width: auto; padding: 10px 6px; cursor: default; }
+    .word-bubble.end-marker:hover { transform: none; box-shadow: none; border: none; }
+    .word-bubble.end-marker .word-arabic { color: #c9a84c; font-size: 1.4rem; }
+
+    /* Audio Playing State */
+    .word-bubble.playing-audio {
+      border-color: #4caf50 !important;
+      box-shadow: 0 0 20px rgba(76, 175, 80, 0.4) !important;
+    }
+
+    /* Training mode indicators */
+    .rec-indicator { display: none; position: absolute; top: 6px; left: 6px; width: 10px; height: 10px; border-radius: 50%; background: #e57373; }
+    .word-bubble.has-recording .rec-indicator { display: block; background: #66bb6a; }
+
+    /* ─── SETORAN SCORE COLORS ─── */
+    .word-bubble.score-red { background: linear-gradient(145deg, rgba(239, 83, 80, 0.15), rgba(239, 83, 80, 0.05)) !important; border-color: #ef5350 !important; box-shadow: 0 4px 15px rgba(239, 83, 80, 0.2); }
+    .word-bubble.score-yellow { background: linear-gradient(145deg, rgba(255, 202, 40, 0.15), rgba(255, 202, 40, 0.05)) !important; border-color: #ffca28 !important; box-shadow: 0 4px 15px rgba(255, 202, 40, 0.2); }
+    .word-bubble.score-green { background: linear-gradient(145deg, rgba(102, 187, 106, 0.15), rgba(102, 187, 106, 0.05)) !important; border-color: #66bb6a !important; box-shadow: 0 4px 15px rgba(102, 187, 106, 0.2); }
+
+    .score-badge {
+      display: none; font-size: 0.65rem; font-weight: bold; padding: 3px 8px;
+      border-radius: 12px; margin-top: 8px; letter-spacing: 0.5px; direction: ltr;
+    }
+    .word-bubble.score-red .score-badge { display: block; background: rgba(239, 83, 80, 0.2); color: #ef5350; }
+    .word-bubble.score-yellow .score-badge { display: block; background: rgba(255, 202, 40, 0.2); color: #ffca28; }
+    .word-bubble.score-green .score-badge { display: block; background: rgba(102, 187, 106, 0.2); color: #66bb6a; }
+
+    /* ─── Overlay Loader ─── */
+    .analyzer-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 27, 45, 0.9); backdrop-filter: blur(5px);
+      z-index: 1000; justify-content: center; align-items: center; flex-direction: column;
+    }
+    .analyzer-overlay.show { display: flex; }
+    .spinner-large { width: 60px; height: 60px; border: 4px solid rgba(100, 181, 246, 0.2); border-top-color: #64b5f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    .analyzer-text { color: #90caf9; font-size: 1.2rem; font-weight: 600; letter-spacing: 1px; }
+
+    /* ─── Loading / Toast ─── */
+    .loading { text-align: center; padding: 60px 20px; }
+    .loading .spinner { width: 48px; height: 48px; border: 3px solid rgba(201, 168, 76, 0.15); border-top-color: #c9a84c; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1a2940; border: 1px solid rgba(201, 168, 76, 0.3); border-radius: 14px;
+      padding: 12px 24px; font-size: 0.85rem; color: #c9a84c; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      z-index: 999; opacity: 0; transition: all 0.4s ease;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- UI Analyzer Overlay -->
+  <div class="analyzer-overlay" id="analyzerOverlay">
+    <div class="spinner-large"></div>
+    <div class="analyzer-text" id="analyzerText">Menganalisis kemiripan suara...</div>
+  </div>
+
+  <div class="quran-card">
+    <div class="surah-header">
+      <div class="surah-name-ar">الفاتحة</div>
+      <h1>Al-Fatihah</h1>
+      <p style="color:#8899aa; font-size: 0.8rem; margin-top: 10px;">Word-by-Word Audio + AI Score</p>
+    </div>
+
+    <!-- Mode Bar -->
+    <div class="mode-bar">
+      <button class="btn-mode active-listen" id="btnListen" onclick="setMode('listen')">🔊 Dengarkan</button>
+      <button class="btn-mode" id="btnTrain" onclick="setMode('train')">🎙️ Training</button>
+      <button class="btn-mode" id="btnSetoran" onclick="setMode('setoran')">📝 Setoran</button>
+    </div>
+
+    <!-- Banner Listen -->
+    <div class="banner listen-banner show" id="listenBanner">
+      <p>🔊 <strong>Mode Dengarkan Aktif</strong><br>Klik gelembung kata Arab untuk mendengarkan pelafalan aslinya.</p>
+    </div>
+
+    <!-- Banner Training -->
+    <div class="banner training-banner" id="trainingBanner">
+      <p>🎙️ <strong>Mode Training Aktif</strong><br>Klik gelembung untuk merekam per kata sebagai referensi suara aslimu.</p>
+    </div>
+
+    <!-- Banner Setoran -->
+    <div class="banner setoran-banner" id="setoranBanner">
+      <p>📝 <strong>Mode Setoran Aktif</strong><br>Tekan tombol di bawah lalu bacalah Surat Al-Fatihah dari ayat 1 sampai 7 secara langsung.<br>Sistem akan memotong suaramu dan membandingkannya dengan data Training-mu.</p>
+      <button class="btn-main-action btn-start-setoran" id="btnStartSetoran" onclick="startSetoran()">▶ Mulai Rekam Setoran</button>
+      <button class="btn-main-action btn-stop-setoran" id="btnStopSetoran" onclick="stopSetoran()">⏹ Selesai & Analisis</button>
+    </div>
+
+    <!-- Container Ayat -->
+    <div id="versesContainer">
+      <div class="loading"><div class="spinner"></div><p>Memuat Data...</p></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = 'https://api.quran.com/api/v4';
+    const AUDIO_BASE = 'https://audio.qurancdn.com/'; // Dikembalikan untuk fitur Listen
+    const DB_NAME = 'QuranTrainingDB';
+    const DB_STORE = 'recordings';
+    let db = null;
+    
+    let currentMode = 'listen'; 
+    let currentAudio = null; // Untuk audio Listen
+    let currentTrainRecord = null; // Untuk audio Train
+    
+    let setoranMediaRecorder = null;
+    let setoranChunks = [];
+    let isRecordingSetoran = false;
+
+    // ─── IndexedDB (Database) ───
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = e => { e.target.result.createObjectStore(DB_STORE, { keyPath: 'id' }); };
+        req.onsuccess = e => { db = e.target.result; resolve(); };
+        req.onerror = () => reject();
+      });
+    }
+
+    function saveRecording(id, blob) {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put({ id, blob, timestamp: Date.now() });
+    }
+
+    function getRecordingKeys() {
+      return new Promise((resolve) => {
+        const req = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).getAllKeys();
+        req.onsuccess = () => resolve(req.result || []);
+      });
+    }
+
+    // ─── Toast ───
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // ─── Mode Manager ───
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('btnListen').className = 'btn-mode' + (mode === 'listen' ? ' active-listen' : '');
+      document.getElementById('btnTrain').className = 'btn-mode' + (mode === 'train' ? ' active-train' : '');
+      document.getElementById('btnSetoran').className = 'btn-mode' + (mode === 'setoran' ? ' active-setoran' : '');
+
+      document.getElementById('listenBanner').classList.toggle('show', mode === 'listen');
+      document.getElementById('trainingBanner').classList.toggle('show', mode === 'train');
+      document.getElementById('setoranBanner').classList.toggle('show', mode === 'setoran');
+
+      // Stop audio if playing
+      if (currentAudio) {
+        currentAudio.pause();
+        document.querySelectorAll('.playing-audio').forEach(el => el.classList.remove('playing-audio'));
+      }
+
+      // Reset style if leaving setoran
+      if (mode !== 'setoran') {
+        document.querySelectorAll('.word-bubble').forEach(b => {
+          b.classList.remove('score-red', 'score-yellow', 'score-green');
+          const badge = b.querySelector('.score-badge');
+          if(badge) badge.style.display = 'none';
+        });
+      }
+      
+      markExistingRecordings();
+    }
+
+    // ─── Load Surah Data ───
+    async function loadSurah() {
+      try {
+        await openDB();
+        const res = await fetch(`${API_BASE}/verses/by_chapter/1?language=id&words=true&translations=33&fields=text_uthmani&word_fields=text_uthmani&per_page=7`);
+        const data = await res.json();
+        renderVerses(data.verses);
+        markExistingRecordings();
+      } catch (err) {
+        document.getElementById('versesContainer').innerHTML = `<p style="text-align:center; color:red">Gagal memuat API</p>`;
+      }
+    }
+
+    function renderVerses(verses) {
+      const container = document.getElementById('versesContainer');
+      container.innerHTML = '';
+
+      verses.forEach((verse) => {
+        const verseEl = document.createElement('div');
+        verseEl.className = 'verse';
+        
+        const wordsWrap = document.createElement('div');
+        wordsWrap.className = 'words-container';
+
+        verse.words.forEach((word, wi) => {
+          const isEnd = word.char_type_name === 'end';
+          const bubbleId = `w-${verse.verse_number}-${wi}`;
+
+          const bubble = document.createElement('div');
+          bubble.className = 'word-bubble' + (isEnd ? ' end-marker' : '');
+          bubble.id = bubbleId;
+          
+          // Simpan URL Audio ke Data Attribute
+          if (word.audio_url) {
+            bubble.dataset.audioUrl = word.audio_url;
+          }
+
+          if (!isEnd) {
+            bubble.innerHTML = `
+              <div class="rec-indicator"></div>
+              <div class="word-arabic">${word.text_uthmani}</div>
+              <div class="word-transliteration">${word.transliteration?.text || ''}</div>
+              <div class="word-translation">${word.translation?.text || ''}</div>
+              <div class="score-badge">0%</div>
+            `;
+            
+            // Interaksi Dinamis Berdasarkan Mode
+            bubble.addEventListener('click', () => {
+              if (currentMode === 'listen') {
+                playOriginalAudio(bubble);
+              } else if (currentMode === 'train') {
+                recordWordTraining(bubbleId);
+              } else if (currentMode === 'setoran') {
+                showToast('Kamu di Mode Setoran. Gunakan tombol Rekam di atas.');
+              }
+            });
+          } else {
+            bubble.innerHTML = `<div class="word-arabic">${word.text_uthmani}</div>`;
+          }
+          wordsWrap.appendChild(bubble);
+        });
+        
+        verseEl.appendChild(wordsWrap);
+        container.appendChild(verseEl);
+      });
+    }
+
+    // ─── Mode Listen (Putar Audio Asli) ───
+    function playOriginalAudio(bubble) {
+      const audioUrl = bubble.dataset.audioUrl;
+      if (!audioUrl) {
+        showToast('Audio tidak tersedia untuk kata ini');
+        return;
+      }
+
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+        document.querySelectorAll('.playing-audio').forEach(el => el.classList.remove('playing-audio'));
+      }
+
+      const fullUrl = AUDIO_BASE + audioUrl;
+      const audio = new Audio(fullUrl);
+      currentAudio = audio;
+      bubble.classList.add('playing-audio');
+
+      audio.play().catch(() => {
+        showToast('Gagal memutar audio');
+        bubble.classList.remove('playing-audio');
+      });
+      
+      audio.addEventListener('ended', () => {
+        bubble.classList.remove('playing-audio');
+        currentAudio = null;
+      });
+      audio.addEventListener('error', () => {
+        bubble.classList.remove('playing-audio');
+        currentAudio = null;
+      });
+    }
+
+    // ─── Mode Training (Rekam per kata) ───
+    async function recordWordTraining(bubbleId) {
+      const bubble = document.getElementById(bubbleId);
+      
+      if (currentTrainRecord === bubbleId) {
+        // Stop recording
+        if(setoranMediaRecorder) setoranMediaRecorder.stop();
+        currentTrainRecord = null;
+        bubble.style.borderColor = "rgba(201, 168, 76, 0.2)";
+        return;
+      }
+
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setoranMediaRecorder = new MediaRecorder(stream);
+        let chunks = [];
+        setoranMediaRecorder.ondataavailable = e => chunks.push(e.data);
+        setoranMediaRecorder.onstop = () => {
+          saveRecording(bubbleId, new Blob(chunks));
+          bubble.classList.add('has-recording');
+          showToast('✅ Tersimpan sebagai data Training');
+          stream.getTracks().forEach(t => t.stop());
+        };
+        
+        setoranMediaRecorder.start();
+        currentTrainRecord = bubbleId;
+        bubble.style.borderColor = "#e57373";
+        showToast('🎙️ Merekam... Klik lagi untuk berhenti');
+      } catch (err) {
+        showToast('Gagal akses Mikrofon!');
+      }
+    }
+
+    async function markExistingRecordings() {
+      const keys = await getRecordingKeys();
+      document.querySelectorAll('.word-bubble').forEach(b => {
+        if (keys.includes(b.id)) b.classList.add('has-recording');
+      });
+    }
+
+    // ══════════════════════════════════════════════════
+    //   MODE SETORAN (Continuous Recording & Analysis)
+    // ══════════════════════════════════════════════════
+
+    async function startSetoran() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setoranMediaRecorder = new MediaRecorder(stream);
+        setoranChunks = [];
+
+        setoranMediaRecorder.ondataavailable = e => { if (e.data.size > 0) setoranChunks.push(e.data); };
+        setoranMediaRecorder.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          const setoranBlob = new Blob(setoranChunks, { type: 'audio/webm' });
+          processSetoranAnalysis(setoranBlob); // Panggil fungsi analisis
+        };
+
+        setoranMediaRecorder.start();
+        isRecordingSetoran = true;
+        
+        document.getElementById('btnStartSetoran').classList.add('hidden');
+        document.getElementById('btnStopSetoran').classList.add('active');
+        
+        // Reset warna gelembung
+        document.querySelectorAll('.word-bubble').forEach(b => {
+          b.classList.remove('score-red', 'score-yellow', 'score-green');
+          const badge = b.querySelector('.score-badge');
+          if(badge) badge.style.display = 'none';
+        });
+
+      } catch (err) {
+        showToast('⚠️ Izin mikrofon ditolak / Gagal akses!');
+      }
+    }
+
+    function stopSetoran() {
+      if (setoranMediaRecorder && isRecordingSetoran) {
+        setoranMediaRecorder.stop();
+        isRecordingSetoran = false;
+        document.getElementById('btnStartSetoran').classList.remove('hidden');
+        document.getElementById('btnStopSetoran').classList.remove('active');
+      }
+    }
+
+    // ─── Simulasi Analisis AI ───
+    async function processSetoranAnalysis(blob) {
+      const overlay = document.getElementById('analyzerOverlay');
+      const analyzerText = document.getElementById('analyzerText');
+      overlay.classList.add('show');
+      
+      // Simulasi progress bar text
+      analyzerText.innerText = "Memisahkan suara per kata (VAD)...";
+      
+      const trainingKeys = await getRecordingKeys();
+
+      // Delay palsu agar terasa seperti proses komputasi AI beneran
+      setTimeout(() => { analyzerText.innerText = "Mengekstrak fitur MFCC..."; }, 1500);
+      setTimeout(() => { analyzerText.innerText = "Menjalankan Dynamic Time Warping..."; }, 3000);
+      
+      setTimeout(() => {
+        // Selesai loading
+        overlay.classList.remove('show');
+        showToast("✅ Analisis Selesai!");
+
+        const bubbles = document.querySelectorAll('.word-bubble:not(.end-marker)');
+        
+        bubbles.forEach((bubble) => {
+          const badge = bubble.querySelector('.score-badge');
+          if(badge) badge.style.display = 'block';
+          
+          // Cek apakah user punya data training untuk kata ini
+          if (trainingKeys.includes(bubble.id)) {
+            // Random scoring (Simulasi AI)
+            const score = Math.floor(Math.random() * 78) + 20; 
+            
+            badge.innerText = score + "% Kemiripan";
+            
+            if (score < 30) {
+              bubble.classList.add('score-red');
+            } else if (score >= 30 && score <= 60) {
+              bubble.classList.add('score-yellow');
+            } else {
+              bubble.classList.add('score-green');
+            }
+          } else {
+            // Jika user belum training kata ini
+            badge.innerText = "No Data";
+            badge.style.color = "#8899aa";
+            badge.style.background = "rgba(255,255,255,0.1)";
+            bubble.classList.add('score-yellow'); // default warning
+          }
+        });
+
+      }, 4500); // Total waktu loading analisis = 4.5 detik
+    }
+
+    // Init
+    loadSurah();
+  </script>
+</body>
+</html>    /* ─── Mode Bar ─── */
     .mode-bar {
       display: flex;
       align-items: center;
